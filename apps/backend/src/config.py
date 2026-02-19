@@ -17,8 +17,8 @@ class Settings(BaseSettings):
     max_session_size_mb: int = 100
 
     # AI
-    anthropic_api_key: str = ""
-    claude_model: str = "claude-sonnet-4-20250514"
+    google_api_key: str = ""
+    gemini_model: str = "gemini-2.0-flash"
 
     # External APIs
     ep_online_api_key: str = ""

@@ -91,7 +91,7 @@ async def _run_analysis_task(session_id: str, analysis_id: str):
         SQLDocumentRepository,
     )
     from src.infrastructure.storage.local_storage import LocalDocumentStorage
-    from src.infrastructure.ai.claude_gateway import ClaudeGateway
+    from src.infrastructure.ai.gemini_gateway import GeminiGateway
     from src.infrastructure.external.bag_client import PDOKBAGClient
     from src.infrastructure.external.ep_online_client import EPOnlineClient
     from src.infrastructure.external.cbs_client import CBSStatLineClient
@@ -102,7 +102,7 @@ async def _run_analysis_task(session_id: str, analysis_id: str):
         try:
             doc_repo = SQLDocumentRepository(db)
             storage = LocalDocumentStorage()
-            ai = ClaudeGateway()
+            ai = GeminiGateway()
 
             service = DocumentAnalysisService(ai, doc_repo, storage)
 

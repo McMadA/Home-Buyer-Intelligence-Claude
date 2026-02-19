@@ -7,7 +7,7 @@ from src.infrastructure.database.engine import get_session
 from src.infrastructure.database.repositories.document_repo import SQLDocumentRepository
 from src.infrastructure.database.repositories.property_repo import SQLPropertyRepository
 from src.infrastructure.storage.local_storage import LocalDocumentStorage
-from src.infrastructure.ai.claude_gateway import ClaudeGateway
+from src.infrastructure.ai.gemini_gateway import GeminiGateway
 from src.domain.interfaces.document_repository import DocumentRepository
 from src.domain.interfaces.property_repository import PropertyRepository
 from src.domain.interfaces.document_storage import DocumentStorage
@@ -35,7 +35,7 @@ def get_document_storage() -> DocumentStorage:
 
 
 def get_ai_gateway() -> AIGateway:
-    return ClaudeGateway()
+    return GeminiGateway()
 
 
 DocRepo = Annotated[DocumentRepository, Depends(get_document_repository)]
