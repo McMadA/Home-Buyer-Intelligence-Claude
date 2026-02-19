@@ -1,0 +1,765 @@
+
+╭─── Claude Code v2.1.45 ──────────────────────────────────────────────────────╮
+│                                                    │ Tips for getting        │
+│                Welcome back Allard!                │ started                 │
+│                                                    │ Run /init to create a … │
+│                                                    │ ─────────────────────── │
+│                          ✻                         │ Recent activity         │
+│                          |                         │ No recent activity      │
+│                         ▟█▙                        │                         │
+│                       ▐▛███▜▌                      │                         │
+│                      ▝▜█████▛▘                     │                         │
+│                        ▘▘ ▝▝                       │                         │
+│                                                    │                         │
+│                Opus 4.6 · Claude Pro               │                         │
+│  ~\Documents\GitHub\home-buyer-intelligence-engine │                         │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+╭──────────────────────────────────────────────────────────────────────────────╮
+│ Plan to implement                                                            │
+│                                                                              │
+│ Home Buyer Intelligence Engine - Architecture & Execution Plan               │
+│                                                                              │
+│ Context                                                                      │
+│                                                                              │
+│ Dutch home buyers who receive property documents via Move.nl need an         │
+│ intelligent tool to analyze those documents, assess risks, and get           │
+│ data-driven bidding advice. This project builds a GDPR-compliant, AI-powered │
+│  web application that extracts information from uploaded housing documents,  │
+│ enriches it with legally available public data, and generates actionable     │
+│ risk assessments and bidding strategies. The prototype runs locally with     │
+│ SQLite and filesystem storage, designed for seamless Azure migration.        │
+│                                                                              │
+│ ---                                                                          │
+│ Technology Stack                                                             │
+│                                                                              │
+│ Layer: Backend                                                               │
+│ Local (Prototype): FastAPI + uvicorn                                         │
+│ Azure (Production): Azure Container Apps                                     │
+│ ────────────────────────────────────────                                     │
+│ Layer: Frontend                                                              │
+│ Local (Prototype): React + Vite                                              │
+│ Azure (Production): Azure Static Web Apps                                    │
+│ ────────────────────────────────────────                                     │
+│ Layer: Database                                                              │
+│ Local (Prototype): SQLite (via SQLAlchemy)                                   │
+│ Azure (Production): Azure Database for PostgreSQL Flexible Server            │
+│ ────────────────────────────────────────                                     │
+│ Layer: Document Storage                                                      │
+│ Local (Prototype): Local filesystem                                          │
+│ Azure (Production): Azure Blob Storage                                       │
+│ ────────────────────────────────────────                                     │
+│ Layer: AI                                                                    │
+│ Local (Prototype): Claude API (Anthropic)                                    │
+│ Azure (Production): Same + DPA                                               │
+│ ────────────────────────────────────────                                     │
+│ Layer: PDF Parsing                                                           │
+│ Local (Prototype): pdfplumber + PyMuPDF                                      │
+│ Azure (Production): Same (in container)                                      │
+│ ────────────────────────────────────────                                     │
+│ Layer: Secrets                                                               │
+│ Local (Prototype): .env + python-dotenv                                      │
+│ Azure (Production): Azure Key Vault                                          │
+│ ────────────────────────────────────────                                     │
+│ Layer: Monorepo                                                              │
+│ Local (Prototype): Nx + pnpm + uv                                            │
+│ Azure (Production): Same in CI                                               │
+│                                                                              │
+│ ---                                                                          │
+│ Phase 1 - Architecture Blueprint                                             │
+│                                                                              │
+│ Folder Structure                                                             │
+│                                                                              │
+│ home-buyer-intelligence-engine/                                              │
+│ ├── nx.json                          # Nx workspace config                   │
+│ ├── pnpm-workspace.yaml              # JS workspace definition               │
+│ ├── pyproject.toml                   # Root Python config (uv)               │
+│ ├── package.json                     # Root JS config                        │
+│ ├── .env.example                     # Environment variable template         │
+│ ├── .gitignore                                                               │
+│ ├── .prettierrc                                                              │
+│ ├── .eslintrc.cjs                                                            │
+│ ├── docker-compose.yml               # Optional: PostgreSQL + Azurite for    │
+│ later                                                                        │
+│ │                                                                            │
+│ ├── apps/                                                                    │
+│ │   ├── backend/                     # FastAPI application                   │
+│ │   │   ├── pyproject.toml                                                   │
+│ │   │   ├── alembic.ini                                                      │
+│ │   │   ├── alembic/                                                         │
+│ │   │   │   └── versions/                                                    │
+│ │   │   ├── src/                                                             │
+│ │   │   │   ├── main.py              # FastAPI app entry point               │
+│ │   │   │   ├── config.py            # Settings via pydantic-settings        │
+│ │   │   │   ├── api/                 # Presentation layer                    │
+│ │   │   │   │   ├── v1/                                                      │
+│ │   │   │   │   │   ├── documents.py # Upload & status endpoints             │
+│ │   │   │   │   │   ├── analysis.py  # Analysis results endpoints            │
+│ │   │   │   │   │   ├── market.py    # Market data endpoints                 │
+│ │   │   │   │   │   └── gdpr.py      # Data export & deletion                │
+│ │   │   │   │   ├── middleware/                                              │
+│ │   │   │   │   │   ├── audit.py     # GDPR audit logging                    │
+│ │   │   │   │   │   └── errors.py    # Structured error handler              │
+│ │   │   │   │   └── dependencies.py  # FastAPI dependency injection          │
+│ │   │   │   ├── application/         # Use cases / application services      │
+│ │   │   │   │   ├── services/                                                │
+│ │   │   │   │   │   ├── document_analysis.py                                 │
+│ │   │   │   │   │   ├── market_intelligence.py                               │
+│ │   │   │   │   │   ├── risk_scoring.py                                      │
+│ │   │   │   │   │   ├── bidding_strategy.py                                  │
+│ │   │   │   │   │   └── gdpr_service.py                                      │
+│ │   │   │   │   └── dto/             # Data transfer objects                 │
+│ │   │   │   │       ├── document_dto.py                                      │
+│ │   │   │   │       ├── analysis_dto.py                                      │
+│ │   │   │   │       └── market_dto.py                                        │
+│ │   │   │   ├── domain/              # Pure domain models (no framework      │
+│ deps)                                                                        │
+│ │   │   │   │   ├── models/                                                  │
+│ │   │   │   │   │   ├── document.py  # Document entity                       │
+│ │   │   │   │   │   ├── property.py  # Property entity                       │
+│ │   │   │   │   │   ├── analysis.py  # AnalysisResult entity                 │
+│ │   │   │   │   │   ├── risk.py      # RiskScore, RiskCategory               │
+│ │   │   │   │   │   └── bidding.py   # BiddingStrategy entity                │
+│ │   │   │   │   ├── enums.py         # DocumentType, RiskLevel, etc.         │
+│ │   │   │   │   └── interfaces/      # Repository & service interfaces       │
+│ │   │   │   │       ├── document_repository.py                               │
+│ │   │   │   │       ├── property_repository.py                               │
+│ │   │   │   │       ├── ai_gateway.py                                        │
+│ │   │   │   │       ├── document_storage.py                                  │
+│ │   │   │   │       └── external_data.py                                     │
+│ │   │   │   └── infrastructure/      # Implementations                       │
+│ │   │   │       ├── database/                                                │
+│ │   │   │       │   ├── engine.py    # SQLAlchemy engine setup               │
+│ │   │   │       │   ├── models.py    # ORM models                            │
+│ │   │   │       │   └── repositories/                                        │
+│ │   │   │       │       ├── document_repo.py                                 │
+│ │   │   │       │       └── property_repo.py                                 │
+│ │   │   │       ├── storage/                                                 │
+│ │   │   │       │   ├── local_storage.py                                     │
+│ │   │   │       │   └── blob_storage.py   # Azure Blob (future)              │
+│ │   │   │       ├── ai/                                                      │
+│ │   │   │       │   ├── claude_gateway.py                                    │
+│ │   │   │       │   └── prompts/                                             │
+│ │   │   │       │       ├── document_parse.py                                │
+│ │   │   │       │       ├── risk_detect.py                                   │
+│ │   │   │       │       └── weakness_detect.py                               │
+│ │   │   │       ├── external/                                                │
+│ │   │   │       │   ├── bag_client.py      # BAG/PDOK API                    │
+│ │   │   │       │   ├── ep_online_client.py # Energy label API               │
+│ │   │   │       │   └── cbs_client.py      # CBS StatLine API                │
+│ │   │   │       └── pdf/                                                     │
+│ │   │   │           ├── extractor.py       # pdfplumber + PyMuPDF            │
+│ │   │   │           └── preprocessor.py    # PII redaction before AI         │
+│ │   │   └── tests/                                                           │
+│ │   │       ├── unit/                                                        │
+│ │   │       ├── integration/                                                 │
+│ │   │       └── conftest.py                                                  │
+│ │   │                                                                        │
+│ │   └── frontend/                    # React + Vite SPA                      │
+│ │       ├── package.json                                                     │
+│ │       ├── tsconfig.json                                                    │
+│ │       ├── vite.config.ts                                                   │
+│ │       ├── index.html                                                       │
+│ │       └── src/                                                             │
+│ │           ├── main.tsx                                                     │
+│ │           ├── App.tsx                                                      │
+│ │           ├── api/                 # Generated from OpenAPI spec           │
+│ │           │   └── client.ts                                                │
+│ │           ├── components/                                                  │
+│ │           │   ├── layout/                                                  │
+│ │           │   ├── upload/                                                  │
+│ │           │   │   ├── DocumentUploader.tsx                                 │
+│ │           │   │   └── UploadProgress.tsx                                   │
+│ │           │   ├── analysis/                                                │
+│ │           │   │   ├── RiskDashboard.tsx                                    │
+│ │           │   │   ├── RiskScoreGauge.tsx                                   │
+│ │           │   │   ├── StrengthsWeaknesses.tsx                              │
+│ │           │   │   └── CategoryBreakdown.tsx                                │
+│ │           │   ├── market/                                                  │
+│ │           │   │   └── MarketPosition.tsx                                   │
+│ │           │   └── bidding/                                                 │
+│ │           │       ├── StrategySelector.tsx                                 │
+│ │           │       └── BiddingAdvice.tsx                                    │
+│ │           ├── hooks/                                                       │
+│ │           ├── pages/                                                       │
+│ │           │   ├── HomePage.tsx                                             │
+│ │           │   ├── UploadPage.tsx                                           │
+│ │           │   ├── AnalysisPage.tsx                                         │
+│ │           │   └── PrivacyPage.tsx                                          │
+│ │           ├── types/                                                       │
+│ │           └── utils/                                                       │
+│ │                                                                            │
+│ ├── libs/                                                                    │
+│ │   └── shared-types/                # OpenAPI-generated TypeScript types    │
+│ │       ├── package.json                                                     │
+│ │       └── src/                                                             │
+│ │           └── index.ts             # Auto-generated from FastAPI spec      │
+│ │                                                                            │
+│ └── infra/                                                                   │
+│     ├── azure/                                                               │
+│     │   ├── main.bicep               # Azure IaC (future)                    │
+│     │   └── parameters.json                                                  │
+│     └── scripts/                                                             │
+│         ├── generate-types.sh        # OpenAPI → TypeScript codegen          │
+│         └── migrate-db.sh            # Alembic migration runner              │
+│                                                                              │
+│ Service Boundaries (Microservice-Ready Modules)                              │
+│                                                                              │
+│ Each service is a Python module within the monolith, communicating via       │
+│ direct function calls. Each has a clear interface that could become an HTTP  │
+│ boundary later.                                                              │
+│                                                                              │
+│ Service: Document Analysis                                                   │
+│ Module Path: application/services/document_analysis.py                       │
+│ Responsibility: Orchestrate PDF extraction + AI parsing                      │
+│ ────────────────────────────────────────                                     │
+│ Service: Market Intelligence                                                 │
+│ Module Path: application/services/market_intelligence.py                     │
+│ Responsibility: Query BAG, EP-Online, CBS; aggregate market context          │
+│ ────────────────────────────────────────                                     │
+│ Service: Risk Scoring                                                        │
+│ Module Path: application/services/risk_scoring.py                            │
+│ Responsibility: Compute risk score from analysis + market data               │
+│ ────────────────────────────────────────                                     │
+│ Service: Bidding Strategy                                                    │
+│ Module Path: application/services/bidding_strategy.py                        │
+│ Responsibility: Generate price advice per strategy type                      │
+│ ────────────────────────────────────────                                     │
+│ Service: GDPR Service                                                        │
+│ Module Path: application/services/gdpr_service.py                            │
+│ Responsibility: Data export, deletion, audit log                             │
+│                                                                              │
+│ Data Flow                                                                    │
+│                                                                              │
+│ User uploads PDF(s)                                                          │
+│     │                                                                        │
+│     ▼                                                                        │
+│ [FastAPI endpoint] → Store file (local FS) → Create DB record                │
+│     │                                                                        │
+│     ▼                                                                        │
+│ [PDF Extractor] → pdfplumber extracts text/tables                            │
+│     │                                                                        │
+│     ▼                                                                        │
+│ [PII Preprocessor] → Redact BSN, names before AI call                        │
+│     │                                                                        │
+│     ▼                                                                        │
+│ [Claude Gateway] → Send to Claude API with structured prompt                 │
+│     │                 → Returns structured JSON (address, sqm, year,         │
+│ defects, etc.)                                                               │
+│     ▼                                                                        │
+│ [Market Intelligence] → Query BAG API (building details)                     │
+│     │                  → Query EP-Online (energy label)                      │
+│     │                  → Query CBS StatLine (area statistics)                │
+│     ▼                                                                        │
+│ [Risk Scoring Engine] → Combine AI extraction + external data                │
+│     │                  → Score 0-100 across categories                       │
+│     │                  → (structural, legal, financial, market)              │
+│     ▼                                                                        │
+│ [Bidding Strategy Engine] → Apply user-selected strategy                     │
+│     │                      → (conservative / competitive / aggressive)       │
+│     │                      → Generate price range + explanation              │
+│     ▼                                                                        │
+│ [API Response] → Return complete analysis to frontend                        │
+│                                                                              │
+│ Security Design                                                              │
+│                                                                              │
+│ - Authentication: Session-based for prototype (simple token). Azure Entra ID │
+│  B2C for production.                                                         │
+│ - Document isolation: Each upload gets a unique session ID. Documents stored │
+│  in uploads/{session_id}/ subdirectories. DB records filtered by session.    │
+│ - PII redaction: BSN numbers, full names, and addresses are redacted from    │
+│ text before sending to Claude API. Original text stays local only.           │
+│ - Secrets: .env file (gitignored), loaded via pydantic-settings. No          │
+│ hardcoded secrets anywhere.                                                  │
+│ - CORS: Locked to localhost:5173 (Vite dev server) in development.           │
+│ - Input validation: All uploads validated for file type (PDF only), file     │
+│ size (max 25MB per file), and total session size (max 100MB).                │
+│                                                                              │
+│ Azure Migration Mapping                                                      │
+│                                                                              │
+│ Local Component: SQLite                                                      │
+│ Azure Service: Azure DB for PostgreSQL Flexible Server                       │
+│ Migration Method: Alembic migrations (re-run on PostgreSQL)                  │
+│ ────────────────────────────────────────                                     │
+│ Local Component: Local filesystem                                            │
+│ Azure Service: Azure Blob Storage                                            │
+│ Migration Method: Swap LocalStorage → BlobStorage via DI                     │
+│ ────────────────────────────────────────                                     │
+│ Local Component: .env secrets                                                │
+│ Azure Service: Azure Key Vault                                               │
+│ Migration Method: azure-identity + azure-keyvault-secrets                    │
+│ ────────────────────────────────────────                                     │
+│ Local Component: uvicorn                                                     │
+│ Azure Service: Azure Container Apps                                          │
+│ Migration Method: Dockerfile + az containerapp up                            │
+│ ────────────────────────────────────────                                     │
+│ Local Component: Vite static build                                           │
+│ Azure Service: Azure Static Web Apps                                         │
+│ Migration Method: swa deploy CLI                                             │
+│ ────────────────────────────────────────                                     │
+│ Local Component: N/A                                                         │
+│ Azure Service: Azure Monitor + App Insights                                  │
+│ Migration Method: Add opencensus-ext-azure middleware                        │
+│                                                                              │
+│ ---                                                                          │
+│ Phase 2 - Domain Models & API Contracts                                      │
+│                                                                              │
+│ Core Domain Models                                                           │
+│                                                                              │
+│ DocumentType enum: PURCHASE_AGREEMENT, ENERGY_LABEL, INSPECTION_REPORT,      │
+│ HOA_DOCUMENTS, PROPERTY_LISTING, OTHER                                       │
+│                                                                              │
+│ RiskCategory enum: STRUCTURAL, LEGAL, FINANCIAL, MARKET                      │
+│                                                                              │
+│ BiddingStrategy enum: CONSERVATIVE, COMPETITIVE, AGGRESSIVE                  │
+│                                                                              │
+│ Property model: address, postal_code, city, square_meters, year_built,       │
+│ energy_label, property_type, asking_price, hoa_monthly_cost                  │
+│                                                                              │
+│ RiskScore model: overall_score (0-100), category_scores (dict of             │
+│ RiskCategory → score), findings (list of RiskFinding), each finding has:     │
+│ category, severity, title, description, source                               │
+│                                                                              │
+│ AnalysisResult model: property, strengths (list), weaknesses (list),         │
+│ risk_score, market_position, bidding_advice (dict of strategy → price_range  │
+│ + explanation)                                                               │
+│                                                                              │
+│ API Endpoints (v1)                                                           │
+│                                                                              │
+│ POST   /api/v1/sessions                    → Create analysis session         │
+│ POST   /api/v1/sessions/{id}/documents     → Upload document(s)              │
+│ GET    /api/v1/sessions/{id}/documents     → List uploaded documents         │
+│ DELETE /api/v1/sessions/{id}/documents/{doc_id} → Delete a document          │
+│                                                                              │
+│ POST   /api/v1/sessions/{id}/analyze       → Trigger full analysis pipeline  │
+│ GET    /api/v1/sessions/{id}/analysis      → Get analysis results            │
+│ GET    /api/v1/sessions/{id}/analysis/status → Poll analysis progress        │
+│                                                                              │
+│ GET    /api/v1/sessions/{id}/market        → Get market context data         │
+│                                                                              │
+│ DELETE /api/v1/sessions/{id}               → Delete all session data (GDPR)  │
+│ GET    /api/v1/sessions/{id}/export        → Export all data as JSON (GDPR)  │
+│                                                                              │
+│ Risk Scoring Model                                                           │
+│                                                                              │
+│ Overall Score = weighted average of category scores                          │
+│                                                                              │
+│ Category weights:                                                            │
+│   Structural: 0.30  (building condition, defects, age)                       │
+│   Legal:      0.20  (ownership issues, zoning, restrictions)                 │
+│   Financial:  0.25  (price vs market, HOA costs, energy costs)               │
+│   Market:     0.25  (area trends, time on market, comparable sales)          │
+│                                                                              │
+│ Each category score (0-100, higher = more risk):                             │
+│   Based on findings detected by AI + external data                           │
+│   Each finding has severity: LOW (5pts), MEDIUM (15pts), HIGH (30pts),       │
+│ CRITICAL (50pts)                                                             │
+│   Category score = min(100, sum of finding severities)                       │
+│                                                                              │
+│ Risk levels:                                                                 │
+│   0-25:   Low risk (green)                                                   │
+│   26-50:  Moderate risk (yellow)                                             │
+│   51-75:  High risk (orange)                                                 │
+│   76-100: Critical risk (red)                                                │
+│                                                                              │
+│ ---                                                                          │
+│ Phase 3 - Core Backend Implementation                                        │
+│                                                                              │
+│ Steps                                                                        │
+│                                                                              │
+│ 1. Initialize Nx monorepo with @nx/python plugin                             │
+│ 2. Scaffold FastAPI app with health check, CORS, error handling middleware   │
+│ 3. Set up SQLAlchemy + Alembic with SQLite for local dev                     │
+│   - ORM models for: Session, Document, Property, AnalysisResult, AuditLog    │
+│   - Initial migration                                                        │
+│ 4. Implement local filesystem storage with DocumentStorage interface         │
+│ 5. Implement PDF extraction using pdfplumber (primary) + PyMuPDF (fallback)  │
+│ 6. Build API endpoints for session management and document upload            │
+│ 7. Add GDPR audit middleware - log every data access                         │
+│ 8. Add structured error handling with consistent error response format       │
+│ 9. Configure linting (ruff for Python, ESLint + Prettier for TypeScript)     │
+│ 10. Add pre-commit hooks (ruff check, ruff format, type checking)            │
+│                                                                              │
+│ Key Files to Create                                                          │
+│                                                                              │
+│ - apps/backend/src/main.py - FastAPI app with middleware stack               │
+│ - apps/backend/src/config.py - Pydantic Settings (reads .env)                │
+│ - apps/backend/src/infrastructure/database/engine.py - SQLAlchemy async      │
+│ engine                                                                       │
+│ - apps/backend/src/infrastructure/database/models.py - ORM table definitions │
+│ - apps/backend/src/infrastructure/storage/local_storage.py - File I/O        │
+│ - apps/backend/src/infrastructure/pdf/extractor.py - PDF text/table          │
+│ extraction                                                                   │
+│ - apps/backend/src/api/v1/documents.py - Upload endpoints                    │
+│ - apps/backend/src/api/middleware/audit.py - Audit logging                   │
+│ - apps/backend/src/api/middleware/errors.py - Error handler                  │
+│                                                                              │
+│ ---                                                                          │
+│ Phase 4 - AI Integration                                                     │
+│                                                                              │
+│ Steps                                                                        │
+│                                                                              │
+│ 1. Implement Claude Gateway with structured prompts for:                     │
+│   - Document type classification                                             │
+│   - Structured data extraction (address, sqm, year, defects, costs)          │
+│   - Risk detection (structural, legal, financial issues)                     │
+│   - Strength/weakness identification                                         │
+│ 2. Build PII preprocessor - regex-based redaction of BSN numbers (\b\d{9}\b  │
+│ in Dutch doc context), names, and sensitive financial data before sending to │
+│  Claude                                                                      │
+│ 3. Design prompts that enforce structured JSON output via Claude's tool-use  │
+│ feature                                                                      │
+│ 4. Implement external data clients:                                          │
+│   - BAG/PDOK client: lookup building metadata by address                     │
+│   - EP-Online client: lookup energy label by postal code + house number      │
+│   - CBS StatLine client: fetch area-level housing statistics                 │
+│ 5. Build Risk Scoring Engine - combine AI findings + external data into      │
+│ weighted score                                                               │
+│ 6. Build Bidding Strategy Engine - generate price advice per strategy        │
+│                                                                              │
+│ Claude Prompt Strategy                                                       │
+│                                                                              │
+│ - Use Claude's tool-use (function calling) to enforce JSON schema            │
+│ - Define tools matching our Pydantic models for extraction                   │
+│ - Chain prompts: classify → extract → analyze → score                        │
+│ - Each prompt includes explicit instruction to mark unknown values as null   │
+│ with confidence: "unknown"                                                   │
+│                                                                              │
+│ External API Integration                                                     │
+│                                                                              │
+│ API: BAG (PDOK)                                                              │
+│ Endpoint: api.pdok.nl/kadaster/bag/ogc/v2                                    │
+│ Data Retrieved: Construction year, building type, floor area, address        │
+│   validation                                                                 │
+│ Rate Limit: No key needed, fair use                                          │
+│ ────────────────────────────────────────                                     │
+│ API: EP-Online                                                               │
+│ Endpoint: public.ep-online.nl/api/v3                                         │
+│ Data Retrieved: Energy label (A-G), registration date                        │
+│ Rate Limit: Free API key required                                            │
+│ ────────────────────────────────────────                                     │
+│ API: CBS StatLine                                                            │
+│ Endpoint: odata4.cbs.nl/CBS/                                                 │
+│ Data Retrieved: Avg purchase price by municipality, housing stock, price     │
+│ index                                                                        │
+│ Rate Limit: No key needed                                                    │
+│                                                                              │
+│ ---                                                                          │
+│ Phase 5 - Frontend UI                                                        │
+│                                                                              │
+│ Steps                                                                        │
+│                                                                              │
+│ 1. Scaffold React + Vite app with TypeScript                                 │
+│ 2. Generate API client from FastAPI's OpenAPI spec using openapi-typescript  │
+│ 3. Build pages:                                                              │
+│   - Home: value proposition, start button                                    │
+│   - Upload: drag-and-drop document upload with progress                      │
+│   - Analysis: full results dashboard                                         │
+│   - Privacy: GDPR info, data deletion                                        │
+│ 4. Build components:                                                         │
+│   - DocumentUploader - drag & drop, file type validation, multi-file         │
+│   - UploadProgress - per-file progress bars                                  │
+│   - RiskScoreGauge - circular gauge (0-100) with color coding                │
+│   - CategoryBreakdown - risk per category with findings                      │
+│   - StrengthsWeaknesses - side-by-side cards                                 │
+│   - MarketPosition - price context visualization                             │
+│   - StrategySelector - toggle between conservative/competitive/aggressive    │
+│   - BiddingAdvice - price range with explanation per strategy                │
+│ 5. Styling: Tailwind CSS with a clean, professional Dutch real estate        │
+│ aesthetic                                                                    │
+│ 6. State management: TanStack Query for server state, React context for UI   │
+│ state                                                                        │
+│                                                                              │
+│ UX Flow                                                                      │
+│                                                                              │
+│ [Home Page] → [Upload Page] → [Processing (polling)] → [Analysis Dashboard]  │
+│                                                               │              │
+│                                                     ┌─────────┼─────────┐    │
+│                                                     │         │         │    │
+│                                               [Risk Score] [Market]          │
+│ [Bidding]                                                                    │
+│                                                     │         │         │    │
+│                                               [Category   [Area    [Strategy │
+│                                                Details]   Stats]   Selector] │
+│                                                                              │
+│ ---                                                                          │
+│ Phase 6 - Refactor                                                           │
+│                                                                              │
+│ - Review all service boundaries for Clean Architecture compliance            │
+│ - Ensure domain layer has zero framework imports                             │
+│ - Verify all external calls go through interfaces                            │
+│ - Add missing type hints                                                     │
+│ - Remove dead code                                                           │
+│ - Ensure consistent error handling across all endpoints                      │
+│ - Review GDPR compliance: audit log completeness, PII handling               │
+│                                                                              │
+│ ---                                                                          │
+│ Phase 7 - Improvements & Optimization                                        │
+│                                                                              │
+│ Immediate Improvements                                                       │
+│                                                                              │
+│ - Add WebSocket or SSE for real-time analysis progress (replace polling)     │
+│ - Add document preview (render uploaded PDFs in browser)                     │
+│ - Add analysis history (persist across sessions if user opts in)             │
+│ - Batch external API calls for performance                                   │
+│                                                                              │
+│ Azure Production Improvements                                                │
+│                                                                              │
+│ - Azure Entra ID B2C for authentication                                      │
+│ - Azure Key Vault for secrets rotation                                       │
+│ - Azure Monitor + Application Insights for observability                     │
+│ - Azure Container Apps with auto-scaling                                     │
+│ - Azure Front Door for CDN + WAF                                             │
+│ - Managed PostgreSQL with automated backups                                  │
+│ - Azure Blob lifecycle policies for GDPR retention                           │
+│                                                                              │
+│ Future Capabilities (Design Extension Points Only)                           │
+│                                                                              │
+│ - Renovation cost estimation (add RenovationEstimator interface)             │
+│ - Future value simulation (add ValueProjection interface)                    │
+│ - Negotiation script generation (add NegotiationScriptGenerator interface)   │
+│ - Multi-language support (i18n ready)                                        │
+│                                                                              │
+│ ---                                                                          │
+│ Verification Plan                                                            │
+│                                                                              │
+│ How to test end-to-end                                                       │
+│                                                                              │
+│ 1. Start backend: cd apps/backend && uvicorn src.main:app --reload --port    │
+│ 8000                                                                         │
+│ 2. Start frontend: cd apps/frontend && pnpm dev (port 5173)                  │
+│ 3. Test flow:                                                                │
+│   - Open http://localhost:5173                                               │
+│   - Create a session via the UI                                              │
+│   - Upload a sample Dutch housing PDF (e.g., an energy label or inspection   │
+│ report)                                                                      │
+│   - Trigger analysis                                                         │
+│   - Verify risk score, strengths/weaknesses, and bidding advice appear       │
+│   - Test GDPR deletion endpoint                                              │
+│ 4. API tests: cd apps/backend && pytest tests/                               │
+│ 5. Lint check: nx run-many --target=lint                                     │
+│                                                                              │
+│ Sample test scenarios                                                        │
+│                                                                              │
+│ - Upload a valid energy label PDF → verify energy label extracted correctly  │
+│ - Upload a koopovereenkomst → verify asking price, address, conditions       │
+│ extracted                                                                    │
+│ - Upload multiple documents → verify combined analysis                       │
+│ - Delete session → verify all files and DB records removed                   │
+│ - Test with missing/corrupt PDF → verify graceful error handling             │
+│                                                                              │
+│ ---                                                                          │
+│ Key Dependencies                                                             │
+│                                                                              │
+│ Python (backend)                                                             │
+│                                                                              │
+│ - fastapi, uvicorn[standard], pydantic, pydantic-settings                    │
+│ - sqlalchemy[asyncio], aiosqlite, alembic                                    │
+│ - anthropic (Claude API)                                                     │
+│ - pdfplumber, PyMuPDF                                                        │
+│ - httpx (async HTTP client for external APIs)                                │
+│ - python-multipart (file uploads)                                            │
+│ - ruff (linting + formatting)                                                │
+│ - pytest, pytest-asyncio                                                     │
+│                                                                              │
+│ JavaScript/TypeScript (frontend)                                             │
+│                                                                              │
+│ - react, react-dom, react-router-dom                                         │
+│ - @tanstack/react-query                                                      │
+│ - tailwindcss                                                                │
+│ - openapi-typescript, openapi-fetch                                          │
+│ - react-dropzone                                                             │
+│ - recharts (charts for market data)                                          │
+│ - eslint, prettier                                                           │
+│                                                                              │
+│ Nx                                                                           │
+│                                                                              │
+│ - nx, @nx/vite, @nx/eslint, @nx/python (or manual Python project config)     │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+● I'll implement this plan systematically. Let me start by checking the current
+  state of the repo and then build everything phase by phase.
+
+● Read 2 files (ctrl+o to expand)
+
+● Bash(pwd && ls -la)
+  ⎿  Error: Exit code 1
+
+● Searched for 1 pattern (ctrl+o to expand)
+
+● The repo is empty. This is a large implementation - let me create task items
+  and build this systematically.
+
+● Let me start building. First, all root configuration files and then the
+  backend and frontend in parallel.
+
+● Write(.gitignore)
+  ⎿  Wrote 1 lines to .gitignore
+       1 # Dependencies
+       2 node_modules/
+       3 .pnpm-store/
+       4 __pycache__/
+       5 *.py[cod]
+       6 *$py.class
+       7 *.egg-info/
+       8 .eggs/
+       9 dist/
+      10 build/
+
+● Write(package.json)
+  ⎿  Wrote 1 lines to package.json
+       1 {
+       2   "name": "home-buyer-intelligence-engine",
+       3   "version": "0.1.0",
+       4   "private": true,
+       5   "description": "AI-powered Dutch home buyer document analysis 
+         and bidding advice",
+       6   "scripts": {
+       7     "dev:frontend": "nx dev frontend",
+       8     "dev:backend": "cd apps/backend && uv run uvicorn src.main:a
+         pp --reload --port 8000",
+       9     "build:frontend": "nx build frontend",
+      10     "lint": "nx run-many --target=lint",
+
+● Write(pnpm-workspace.yaml)
+  ⎿  Wrote 1 lines to pnpm-workspace.yaml
+      1 packages:
+      2   - "apps/frontend"
+      3   - "libs/*"
+
+● Write(nx.json)
+  ⎿  Wrote 1 lines to nx.json
+       1 {
+       2   "$schema": "./node_modules/nx/schemas/nx-schema.json",
+       3   "targetDefaults": {
+       4     "build": {
+       5       "dependsOn": ["^build"],
+       6       "cache": true
+       7     },
+       8     "lint": {
+       9       "cache": true
+      10     },
+
+● Write(pyproject.toml)
+  ⎿  Wrote 1 lines to pyproject.toml
+       1 [project]
+       2 name = "home-buyer-intelligence-engine"
+       3 version = "0.1.0"
+       4 description = "AI-powered Dutch home buyer document analysis"
+       5 requires-python = ">=3.11"
+       6 
+       7 [tool.uv.workspace]
+       8 members = ["apps/backend"]
+       9 
+      10 [tool.ruff]
+
+● Write(.env.example)
+  ⎿  Wrote 1 lines to .env.example
+       1 # Claude API
+       2 ANTHROPIC_API_KEY=sk-ant-xxx
+       3 
+       4 # Database (SQLite for local dev)
+       5 DATABASE_URL=sqlite+aiosqlite:///./data/app.db
+       6 
+       7 # Document storage
+       8 UPLOAD_DIR=./uploads
+       9 MAX_FILE_SIZE_MB=25
+      10 MAX_SESSION_SIZE_MB=100
+
+● Write(.prettierrc)
+  ⎿  Wrote 1 lines to .prettierrc
+      1 {
+      2   "semi": true,
+      3   "singleQuote": true,
+      4   "trailingComma": "all",
+      5   "printWidth": 100,
+      6   "tabWidth": 2
+      7 }
+
+● Write(.eslintrc.cjs)
+  ⎿  Wrote 1 lines to .eslintrc.cjs
+       1 module.exports = {
+       2   root: true,
+       3   env: { browser: true, es2022: true },
+       4   extends: [
+       5     'eslint:recommended',
+       6     'plugin:@typescript-eslint/recommended',
+       7     'plugin:react-hooks/recommended',
+       8     'prettier',
+       9   ],
+      10   ignorePatterns: ['dist', '.eslintrc.cjs', 'node_modules'],
+
+● Write(docker-compose.yml)
+  ⎿  Wrote 1 lines to docker-compose.yml
+       1 version: "3.8"
+       2 
+       3 services:
+       4   postgres:
+       5     image: postgres:16-alpine
+       6     environment:
+       7       POSTGRES_DB: homebuyer
+       8       POSTGRES_USER: homebuyer
+       9       POSTGRES_PASSWORD: localdev
+      10     ports:
+
+● Now let me build the backend and infrastructure. I'll use parallel agents for
+  independent parts.
+
+● backend-architect(Create backend domain layer)
+  ⎿  Backgrounded agent (shift+↑ to manage · ctrl+o to expand)
+
+● backend-architect(Create backend infrastructure layer)
+  ⎿  Backgrounded agent (shift+↑ to manage · ctrl+o to expand)
+
+● Good, both agents are working on the backend domain and infrastructure layers.
+   Let me continue with the AI integration layer and the API/services layer in
+  parallel.
+
+● backend-architect(Create AI integration layer)
+  ⎿  Backgrounded agent (shift+↑ to manage · ctrl+o to expand)
+
+● Good, three agents are running in parallel. Let me now start the API layer,
+  services, and DTOs.
+
+● backend-architect(Create API endpoints and DTOs)
+  ⎿  Backgrounded agent (shift+↑ to manage · ctrl+o to expand)
+
+● Good, four agents running now. Let me start the application services layer
+  while those complete.
+
+● backend-architect(Create application services)
+  ⎿  Backgrounded agent (shift+↑ to manage · ctrl+o to expand)
+
+● Good, five agents working now. Let me start the frontend while the backend
+  agents finish.
+
+● frontend-architect(Create frontend scaffold and config)
+  ⎿  Backgrounded agent (shift+↑ to manage · ctrl+o to expand)
+  ⎿  You've hit your limit · resets 2am (Europe/Amsterdam)
+     /upgrade or /extra-usage to finish what you’re working on.
+
+✻ Baked for 7m 11s
+
+● Agent "Create backend domain layer" completed
+  ⎿  You've hit your limit · resets 2am (Europe/Amsterdam)
+     /upgrade or /extra-usage to finish what you’re working on.
+
+● Agent "Create backend infrastructure layer" completed
+  ⎿  You've hit your limit · resets 2am (Europe/Amsterdam)
+     /upgrade or /extra-usage to finish what you’re working on.
+
+● Agent "Create AI integration layer" completed
+  ⎿  You've hit your limit · resets 2am (Europe/Amsterdam)
+     /upgrade or /extra-usage to finish what you’re working on.
+
+● Agent "Create API endpoints and DTOs" completed
+  ⎿  You've hit your limit · resets 2am (Europe/Amsterdam)
+     /upgrade or /extra-usage to finish what you’re working on.
+
+● Agent "Create application services" completed
+  ⎿  You've hit your limit · resets 2am (Europe/Amsterdam)
+     /upgrade or /extra-usage to finish what you’re working on.
+
+● Agent "Create frontend scaffold and config" completed
+  ⎿  You've hit your limit · resets 2am (Europe/Amsterdam)
+     /upgrade or /extra-usage to finish what you’re working on.

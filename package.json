@@ -1,0 +1,19 @@
+{
+  "name": "home-buyer-intelligence-engine",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AI-powered Dutch home buyer document analysis and bidding advice",
+  "scripts": {
+    "dev:frontend": "nx dev frontend",
+    "dev:backend": "cd apps/backend && uv run uvicorn src.main:app --reload --port 8000",
+    "build:frontend": "nx build frontend",
+    "lint": "nx run-many --target=lint",
+    "generate:types": "bash infra/scripts/generate-types.sh"
+  },
+  "devDependencies": {
+    "nx": "^20.4.0",
+    "@nx/vite": "^20.4.0",
+    "@nx/eslint": "^20.4.0",
+    "prettier": "^3.4.0"
+  }
+}
