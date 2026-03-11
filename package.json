@@ -4,9 +4,10 @@
   "private": true,
   "description": "AI-powered Dutch home buyer document analysis and bidding advice",
   "scripts": {
-    "dev:frontend": "nx dev frontend",
+    "dev": "pnpm run --parallel /dev/",
+    "dev:frontend": "pnpm --filter frontend run dev",
     "dev:backend": "cd apps/backend && uv run uvicorn src.main:app --reload --port 8000",
-    "build:frontend": "nx build frontend",
+    "build:frontend": "pnpm --filter frontend run build",
     "lint": "nx run-many --target=lint",
     "generate:types": "bash infra/scripts/generate-types.sh"
   },

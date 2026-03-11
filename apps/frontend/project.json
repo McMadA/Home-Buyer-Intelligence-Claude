@@ -6,25 +6,29 @@
     "dev": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "vite"
+        "command": "pnpm exec vite",
+        "cwd": "apps/frontend"
       }
     },
     "build": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "tsc && vite build"
+        "command": "pnpm exec tsc && pnpm exec vite build",
+        "cwd": "apps/frontend"
       }
     },
     "preview": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "vite preview"
+        "command": "pnpm exec vite preview",
+        "cwd": "apps/frontend"
       }
     },
     "lint": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0"
+        "command": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+        "cwd": "apps/frontend"
       }
     }
   },

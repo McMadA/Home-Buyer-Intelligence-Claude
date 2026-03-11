@@ -23,7 +23,7 @@ class Settings(BaseSettings):
     # External APIs
     ep_online_api_key: str = ""
 
-    model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
+    model_config = {"env_file": ("../../.env", ".env"), "env_file_encoding": "utf-8"}
 
     @property
     def upload_path(self) -> Path:
